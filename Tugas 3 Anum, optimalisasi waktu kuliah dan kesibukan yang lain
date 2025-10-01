@@ -1,0 +1,81 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# waktu istirahat (tidur)
+istirahat = 8  
+
+# Grid setup (kuliah = X, main = Y)
+xmin, xmax, ymin, ymax = 0, 24-istirahat, 0, 24-istirahat
+res = 240
+x = np.linspace(xmin, xmax, res)  # kuliah
+y = np.linspace(ymin, ymax, res)  # main
+X, Y = np.meshgrid(x, y)
+
+
+# Preferensi individu
+# Kuliah nyaman sekitar 7 jam
+kuliah_pref = np.exp(-((X - 7.0)**2) / (2.5**2))
+
+# Main sehat sekitar 3 jam
+main_pref = np.exp(-((Y - 3.0)**2) / (2.0**2))
+
+# Belajar efektif 3 jam (fokus 90-120, rest 10-20)
+belajar = 3.0
+learn_benefit = np.exp(-((belajar - 3.0)**2) / (0.5**2))
+
+# Olahraga sehat 2 jam
+olahraga = 2.0
+olahraga_benefit = np.exp(-((olahraga - 2.0)**2) / (0.5**2))
+
+# Makan 2 jam
+makan = 2.0
+makan_benefit = np.exp(-((makan - 2.0)**2) / (0.3**2))
+
+# Self love 1 jam
+selflove = 1.0
+selflove_benefit = np.exp(-((selflove - 1.0)**2) / (0.3**2))
+
+
+# Penalty
+total_waktu = X + Y + belajar + olahraga + makan + selflove + istirahat
+
+# Penalti kalau lebih dari 24 jam
+total_penalty = 0.5 * np.maximum(total_waktu - 24.0, 0.0)
+
+# Kebanyakan main
+kebanyakan_main = np.exp(-((Y - 8.0)**2) / 0.8)
+
+# Kebanyakan begadang (tidur < 7 jam)
+kebanyakan_begadang = np.exp(-((istirahat - 7.0)**2) / 0.5)
+
+# Ripple motivasi harian
+NPM = 2478
+np.random.seed(NPM)
+ripple = 0.3 * np.sin(0.4 * X) * np.cos(0.7 * Y) 
+ripple += np.random.normal(loc=0.0, scale=0.05, size=X.shape)
+
+
+# Objective function
+Z = 10.0 * (
+    0.4 * kuliah_pref +
+    0.3 * main_pref +
+    0.2 * learn_benefit +
+    0.2 * olahraga_benefit +
+    0.1 * makan_benefit +
+    0.1 * selflove_benefit
+)
+Z = Z - total_penalty - kebanyakan_main - kebanyakan_begadang + ripple
+
+# Clip agar terbatas
+Z_clip = np.clip(Z, -5, 15)
+
+
+# Plot semua fenomena
+plt.figure(figsize=(8, 6))
+c = plt.pcolormesh(X, Y, Z_clip, cmap='jet_r', shading='auto')
+contours = plt.contour(X, Y, Z_clip, levels=30, colors='black', linewidths=0.5)
+plt.colorbar(c)
+plt.xlabel("Kuliah (jam)")
+plt.ylabel("Main (jam)")
+plt.title("Quality of Life (dengan belajar, olahraga, makan, self-love)")
+plt.show()
